@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كويز: هل تعرف حقوقك؟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .question-card {
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.5s ease-in-out;
+        }
+        
+        .question-card.active {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .option-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .option-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .correct {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            animation: pulse 0.6s ease-in-out;
+        }
+        
+        .incorrect {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            animation: shake 0.6s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .result-card {
+            animation: slideUp 0.8s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 min-h-screen">
+    
+    <!-- Header -->
+    <div class="text-center py-8">
+        <h1 class="text-4xl font-bold text-white mb-2">⚖️ هل تعرف حقوقك؟</h1>
+        <p class="text-blue-200 text-lg">اختبر معلوماتك القانونية في 10 أسئلة</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="max-w-2xl mx-auto px-4 mb-8">
+        <div class="bg-white/20 rounded-full h-3 overflow-hidden">
+            <div id="progressBar" class="progress-bar bg-gradient-to-r from-green-400 to-blue-500 h-full rounded-full" style="width: 10%"></div>
+        </div>
+        <div class="flex justify-between text-white text-sm mt-2">
+            <span>السؤال <span id="currentQ">1</span> من 10</span>
+            <span>النقاط: <span id="score">0</span></span>
+        </div>
+    </div>
+
+    <!-- Quiz Container -->
+    <div class="max-w-4xl mx-auto px-4">
+        
+        <!-- Question Card -->
+        <div id="questionCard" class="question-card active bg-white rounded-2xl shadow-2xl p-8 mb-8">
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4" id="questionIcon">🏠</div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4" id="questionText">
+                    إذا رفض المالك إعادة مبلغ التأمين بدون مبرر، ما حقك؟
+                </h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="optionsContainer">
+                <button class="option-btn bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl text-lg font-semibold" onclick="selectAnswer(0)">
+                    أ) لا يمكنني فعل شيء
+                </button>
+                <button class="option-btn bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-xl text-lg font-semibold" onclick="selectAnswer(1)">
+                    ب) رفع دعوى قضائية
+                </button>
+                <button class="option-btn bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl text-lg font-semibold" onclick="selectAnswer(2)">
+                    ج) الشكوى للبلدية فقط
+                </button>
+                <button class="option-btn bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-xl text-lg font-semibold" onclick="selectAnswer(3)">
+                    د) انتظار سنة كاملة
+                </button>
+            </div>
+        </div>
+
+        <!-- Explanation Card -->
+        <div id="explanationCard" class="hidden bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-8 text-white">
+            <h3 class="text-xl font-bold mb-3">💡 التفسير:</h3>
+            <p id="explanationText" class="text-lg leading-relaxed"></p>
+        </div>
+
+        <!-- Next Button -->
+        <div class="text-center mb-8">
+            <button id="nextBtn" class="hidden bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-xl text-lg font-bold hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 transform hover:scale-105" onclick="nextQuestion()">
+                السؤال التالي ←
+            </button>
+        </div>
+
+        <!-- Results Card -->
+        <div id="resultsCard" class="hidden result-card bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div class="text-6xl mb-4" id="resultIcon">🎉</div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4" id="resultTitle">ممتاز!</h2>
+            <div class="text-6xl font-bold mb-4" id="finalScore">8/10</div>
+            <p class="text-xl text-gray-600 mb-6" id="resultMessage">لديك معرفة جيدة بحقوقك القانونية!</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div class="bg-green-100 p-4 rounded-xl">
+                    <div class="text-2xl font-bold text-green-600" id="correctAnswers">8</div>
+                    <div class="text-green-700">إجابات صحيحة</div>
+                </div>
+                <div class="bg-red-100 p-4 rounded-xl">
+                    <div class="text-2xl font-bold text-red-600" id="wrongAnswers">2</div>
+                    <div class="text-red-700">إجابات خاطئة</div>
+                </div>
+                <div class="bg-blue-100 p-4 rounded-xl">
+                    <div class="text-2xl font-bold text-blue-600" id="percentage">80%</div>
+                    <div class="text-blue-700">النسبة المئوية</div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all duration-300" onclick="shareResult()">
+                    📱 شارك النتيجة
+                </button>
+                <button class="bg-gradient-to-r from-green-500 to-teal-600 text-white px-6 py-3 rounded-xl font-bold hover:from-green-600 hover:to-teal-700 transition-all duration-300" onclick="restartQuiz()">
+                    🔄 إعادة الاختبار
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                icon: "🏠",
+                question: "إذا رفض المالك إعادة مبلغ التأمين بدون مبرر، ما حقك؟",
+                options: [
+                    "أ) لا يمكنني فعل شيء",
+                    "ب) رفع دعوى قضائية",
+                    "ج) الشكوى للبلدية فقط", 
+                    "د) انتظار سنة كاملة"
+                ],
+                correct: 1,
+                explanation: "يحق لك رفع دعوى قضائية لاسترداد مبلغ التأمين مع التعويض عن الأضرار. هذا حق مكفول قانونياً."
+            },
+            {
+                icon: "💼",
+                question: "إذا فصلك صاحب العمل تعسفياً، ما حقوقك؟",
+                options: [
+                    "أ) لا شيء إذا كان القطاع الخاص",
+                    "ب) راتب شهر واحد فقط",
+                    "ج) تعويض + مكافأة نهاية الخدمة",
+                    "د) العودة للعمل فقط"
+                ],
+                correct: 2,
+                explanation: "في حالة الفصل التعسفي، يحق لك الحصول على تعويض يعادل راتب شهرين عن كل سنة عمل، بالإضافة لمكافأة نهاية الخدمة."
+            },
+            {
+                icon: "🚗",
+                question: "في حادث مرور، من يتحمل المسؤولية إذا كان الطريق معطل الإشارة؟",
+                options: [
+                    "أ) السائق الأسرع",
+                    "ب) من لم يعط الأولوية لليمين",
+                    "ج) كلا السائقين بالتساوي",
+                    "د) شركة التأمين تقرر"
+                ],
+                correct: 1,
+                explanation: "عند تعطل الإشارة، تطبق قاعدة الأولوية لليمين. من لم يعطِ الأولوية يتحمل المسؤولية كاملة."
+            },
+            {
+                icon: "🛒",
+                question: "اشتريت منتج معيب، متى ينتهي حقك في الاستبدال؟",
+                options: [
+                    "أ) 7 أيام من الشراء",
+                    "ب) 15 يوم من الشراء", 
+                    "ج) شهر من الشراء",
+                    "د) حسب ضمان الشركة فقط"
+                ],
+                correct: 0,
+                explanation: "قانون حماية المستهلك يعطيك الحق في استبدال أو إرجاع المنتج المعيب خلال 7 أيام من تاريخ الشراء."
+            },
+            {
+                icon: "🏥",
+                question: "إذا أخطأ الطبيب وتضررت، ما الإجراء الصحيح؟",
+                options: [
+                    "أ) الشكوى للمستشفى فقط",
+                    "ب) رفع دعوى مباشرة",
+                    "ج) الشكوى للهيئة الطبية أولاً",
+                    "د) لا يمكن مقاضاة الأطباء"
+                ],
+                correct: 2,
+                explanation: "يجب أولاً تقديم شكوى للهيئة السعودية للتخصصات الصحية، ثم يمكن رفع دعوى قضائية بناءً على تقريرها."
+            },
+            {
+                icon: "💰",
+                question: "تأخر صاحب العمل في دفع الراتب شهرين، ما حقك؟",
+                options: [
+                    "أ) الراتب فقط بدون زيادة",
+                    "ب) الراتب + تعويض 10%",
+                    "ج) الراتب + فوائد تأخير",
+                    "د) ترك العمل بدون إشعار"
+                ],
+                correct: 2,
+                explanation: "يحق لك المطالبة بالراتب مع فوائد التأخير، ويمكنك أيضاً ترك العمل واعتباره فصل تعسفي إذا تأخر الراتب أكثر من شهر."
+            },
+            {
+                icon: "🏪",
+                question: "رفض المتجر استبدال منتج سليم اشتريته أونلاين، هل هذا قانوني؟",
+                options: [
+                    "أ) نعم، البيع أونلاين نهائي",
+                    "ب) لا، لي الحق في الإرجاع 7 أيام",
+                    "ج) حسب سياسة المتجر فقط",
+                    "د) فقط إذا كان معيب"
+                ],
+                correct: 1,
+                explanation: "قانون التجارة الإلكترونية يعطيك الحق في إرجاع أو استبدال المنتج خلال 7 أيام من الاستلام حتى لو كان سليماً."
+            },
+            {
+                icon: "🏦",
+                question: "البنك رفض إعطائك كشف حساب، هل هذا حقه؟",
+                options: [
+                    "أ) نعم، معلومات سرية",
+                    "ب) لا، هذا حقي المطلق",
+                    "ج) فقط بموافقة المدير",
+                    "د) مقابل رسوم إضافية"
+                ],
+                correct: 1,
+                explanation: "من حقك الحصول على كشف حساب مجاناً. هذا حق أساسي لكل عميل، والبنك ملزم بتوفيره."
+            },
+            {
+                icon: "📱",
+                question: "شركة الاتصالات قطعت خدمتك بدون إنذار، ما حقك؟",
+                options: [
+                    "أ) دفع الفاتورة وانتهى الأمر",
+                    "ب) الشكوى لهيئة الاتصالات",
+                    "ج) تغيير الشركة فقط",
+                    "د) لا يوجد حل قانوني"
+                ],
+                correct: 1,
+                explanation: "يجب على الشركة إنذارك قبل القطع. يمكنك الشكوى لهيئة الاتصالات والمطالبة بتعويض عن الأضرار."
+            },
+            {
+                icon: "🚨",
+                question: "تم توقيفك بدون مذكرة قضائية، كم المدة القانونية القصوى؟",
+                options: [
+                    "أ) 24 ساعة",
+                    "ب) 48 ساعة", 
+                    "ج) 72 ساعة",
+                    "د) أسبوع كامل"
+                ],
+                correct: 0,
+                explanation: "القانون يسمح بالتوقيف بدون مذكرة لمدة أقصاها 24 ساعة، بعدها يجب إحضار مذكرة قضائية أو الإفراج."
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return; // منع الإجابة مرتين
+            
+            selectedAnswer = answerIndex;
+            const buttons = document.querySelectorAll('.option-btn');
+            const correct = questions[currentQuestion].correct;
+            
+            // تلوين الإجابات
+            buttons.forEach((btn, index) => {
+                btn.disabled = true;
+                if (index === correct) {
+                    btn.classList.add('correct');
+                } else if (index === answerIndex && index !== correct) {
+                    btn.classList.add('incorrect');
+                }
+            });
+            
+            // تحديث النقاط
+            if (answerIndex === correct) {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+            
+            // إظهار التفسير
+            document.getElementById('explanationText').textContent = questions[currentQuestion].explanation;
+            document.getElementById('explanationCard').classList.remove('hidden');
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            
+            if (currentQuestion >= questions.length) {
+                showResults();
+                return;
+            }
+            
+            // إخفاء العناصر
+            document.getElementById('explanationCard').classList.add('hidden');
+            document.getElementById('nextBtn').classList.add('hidden');
+            
+            // تحديث السؤال
+            setTimeout(() => {
+                loadQuestion();
+                selectedAnswer = null;
+            }, 300);
+        }
+
+        function loadQuestion() {
+            const question = questions[currentQuestion];
+            
+            // تحديث المحتوى
+            document.getElementById('questionIcon').textContent = question.icon;
+            document.getElementById('questionText').textContent = question.question;
+            document.getElementById('currentQ').textContent = currentQuestion + 1;
+            
+            // تحديث شريط التقدم
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            // تحديث الخيارات
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach((btn, index) => {
+                btn.textContent = question.options[index];
+                btn.disabled = false;
+                btn.className = 'option-btn bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl text-lg font-semibold';
+                
+                // ألوان مختلفة للخيارات
+                const colors = [
+                    'from-blue-500 to-blue-600',
+                    'from-purple-500 to-purple-600', 
+                    'from-green-500 to-green-600',
+                    'from-red-500 to-red-600'
+                ];
+                btn.className = `option-btn bg-gradient-to-r ${colors[index]} text-white p-4 rounded-xl text-lg font-semibold`;
+            });
+        }
+
+        function showResults() {
+            document.getElementById('questionCard').classList.add('hidden');
+            document.getElementById('explanationCard').classList.add('hidden');
+            document.getElementById('nextBtn').classList.add('hidden');
+            
+            // حساب النتائج
+            const percentage = Math.round((score / questions.length) * 100);
+            const wrong = questions.length - score;
+            
+            // تحديد الرسالة والأيقونة
+            let resultIcon, resultTitle, resultMessage;
+            if (percentage >= 90) {
+                resultIcon = "🏆";
+                resultTitle = "ممتاز جداً!";
+                resultMessage = "أنت خبير في القانون! معرفتك ممتازة بحقوقك.";
+            } else if (percentage >= 70) {
+                resultIcon = "🎉";
+                resultTitle = "جيد جداً!";
+                resultMessage = "لديك معرفة جيدة بحقوقك القانونية!";
+            } else if (percentage >= 50) {
+                resultIcon = "👍";
+                resultTitle = "جيد!";
+                resultMessage = "معرفة مقبولة، لكن يمكنك التحسن أكثر.";
+            } else {
+                resultIcon = "📚";
+                resultTitle = "تحتاج للمزيد!";
+                resultMessage = "ننصحك بقراءة المزيد عن حقوقك القانونية.";
+            }
+            
+            // تحديث النتائج
+            document.getElementById('resultIcon').textContent = resultIcon;
+            document.getElementById('resultTitle').textContent = resultTitle;
+            document.getElementById('resultMessage').textContent = resultMessage;
+            document.getElementById('finalScore').textContent = `${score}/${questions.length}`;
+            document.getElementById('correctAnswers').textContent = score;
+            document.getElementById('wrongAnswers').textContent = wrong;
+            document.getElementById('percentage').textContent = percentage + '%';
+            
+            document.getElementById('resultsCard').classList.remove('hidden');
+        }
+
+        function shareResult() {
+            const percentage = Math.round((score / questions.length) * 100);
+            const text = `🎯 أكملت كويز "هل تعرف حقوقك؟"\n📊 النتيجة: ${score}/${questions.length} (${percentage}%)\n⚖️ اختبر معلوماتك القانونية أنت أيضاً!`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'نتيجة كويز حقوقك القانونية',
+                    text: text
+                });
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('تم نسخ النتيجة! يمكنك مشاركتها الآن 📱');
+                });
+            }
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            
+            document.getElementById('score').textContent = '0';
+            document.getElementById('resultsCard').classList.add('hidden');
+            document.getElementById('questionCard').classList.remove('hidden');
+            
+            loadQuestion();
+        }
+
+        // تحميل السؤال الأول
+        loadQuestion();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96fe668ad0d55928',t:'MTc1NTMyMDc2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
